@@ -64,7 +64,7 @@ export function CoffeeCalculatorComponent() {
                   ))}
                 </div>
               </div>
-              <Input ref={inputRef} id="water-volume" type="number" value={waterVolume} onChange={handleWaterChange} min={0} step={10} />
+              <Input ref={inputRef} id="water-volume" type="number" value={waterVolume} onChange={handleWaterChange} min={0} />
             </div>
 
             <div>
