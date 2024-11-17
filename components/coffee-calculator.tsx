@@ -50,14 +50,15 @@ export function CoffeeCalculatorComponent() {
             <div className="flex flex-col gap-4">
               <div className="flex flex-wrap gap-y-2 justify-between items-center">
                 <Label htmlFor="water-volume" className="mr-4">
-                  Water Volume (ml)
+                  Water (ml)
                 </Label>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex gap-2">
                   {quickPresets.map(preset => (
                     <Button
                       key={preset.label}
                       variant={waterVolume === preset.value ? "default" : "outline"}
                       size="sm"
+                      className="flex-1 w-full"
                       onClick={() => setWaterVolume(preset.value)}>
                       {preset.label}
                     </Button>
