@@ -8,12 +8,13 @@ import { Button } from "@/components/ui/button";
 
 export function CoffeeCalculatorComponent() {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [waterVolume, setWaterVolume] = useState(250);
+  const [waterVolume, setWaterVolume] = useState<string>("250");
   const [ratio, setRatio] = useState(16);
   const [coffeeGrounds, setCoffeeGrounds] = useState(0);
 
   const calculateCoffee = useCallback(() => {
-    const grounds = waterVolume / ratio;
+    const waterValue = parseFloat(waterVolume) || 0;
+    const grounds = waterValue / ratio;
     setCoffeeGrounds(Math.round(grounds * 10) / 10);
   }, [waterVolume, ratio]);
 
@@ -26,10 +27,8 @@ export function CoffeeCalculatorComponent() {
   }, []);
 
   const handleWaterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = parseFloat(e.target.value);
-    if (!isNaN(value) && value >= 0) {
-      setWaterVolume(value);
-    }
+    const value = e.target.value;
+    setWaterVolume(value);
   };
 
   const quickPresets = [
@@ -56,10 +55,10 @@ export function CoffeeCalculatorComponent() {
                   {quickPresets.map(preset => (
                     <Button
                       key={preset.label}
-                      variant={waterVolume === preset.value ? "default" : "outline"}
+                      variant={parseFloat(waterVolume) === preset.value ? "default" : "outline"}
                       size="sm"
                       className="flex-1 w-full"
-                      onClick={() => setWaterVolume(preset.value)}>
+                      onClick={() => setWaterVolume(preset.value.toString())}>
                       {preset.label}
                     </Button>
                   ))}
