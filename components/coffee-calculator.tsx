@@ -1,46 +1,68 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 
+const QUICK_PRESETS = [
+  { label: "Single Cup", value: 250 },
+  { label: "Two Cups", value: 500 },
+  { label: "Full Pot", value: 750 },
+];
+
+const RATIO_PRESETS = [15, 16, 17, 18].map(value => ({
+  label: `1:${value}`,
+  value,
+}));
+
+type PresetButtonProps<T> = {
+  presets: Array<{ label: string; value: T }>;
+  currentValue: T;
+  onSelect: (value: T) => void;
+  size?: "sm" | "lg";
+};
+
+const PresetButtons = <T,>({ presets, currentValue, onSelect, size = "sm" }: PresetButtonProps<T>) => (
+  <div className="flex gap-2">
+    {presets.map(preset => (
+      <Button
+        key={preset.label}
+        variant={currentValue === preset.value ? "default" : "outline"}
+        size={size}
+        className="flex-1 w-full"
+        onClick={() => onSelect(preset.value)}>
+        {preset.label}
+      </Button>
+    ))}
+  </div>
+);
+
 export function CoffeeCalculatorComponent() {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [waterVolume, setWaterVolume] = useState<string>("250");
+  const [waterVolume, setWaterVolume] = useState("250");
   const [ratio, setRatio] = useState(16);
-  const [coffeeGrounds, setCoffeeGrounds] = useState(0);
 
-  const calculateCoffee = useCallback(() => {
+  const coffeeGrounds = useMemo(() => {
     const waterValue = parseFloat(waterVolume) || 0;
-    const grounds = waterValue / ratio;
-    setCoffeeGrounds(Math.round(grounds * 10) / 10);
+    return Math.round((waterValue / ratio) * 10) / 10;
   }, [waterVolume, ratio]);
 
   useEffect(() => {
-    calculateCoffee();
-  }, [calculateCoffee]);
-
-  useEffect(() => {
-    // Focus the input and move the cursor to the end
-    if (inputRef.current) {
-      inputRef.current.focus();
-      const length = inputRef.current.value.length;
-      inputRef.current.setSelectionRange(length, length);
+    if (!inputRef.current) {
+      return;
     }
+    inputRef.current.focus();
+    const length = waterVolume.length;
+    inputRef.current.setSelectionRange(length, length);
   }, []);
 
   const handleWaterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
+    // Allow only numbers and empty string
+    const value = e.target.value.replace(/[^0-9]/g, "");
     setWaterVolume(value);
   };
-
-  const quickPresets = [
-    { label: "Single Cup", value: 250 },
-    { label: "Two Cups", value: 500 },
-    { label: "Full Pot", value: 750 },
-  ];
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-neutral-900 p-0 sm:p-4">
@@ -56,18 +78,11 @@ export function CoffeeCalculatorComponent() {
                 <Label htmlFor="water-volume" className="mr-4">
                   Water (ml)
                 </Label>
-                <div className="flex gap-2">
-                  {quickPresets.map(preset => (
-                    <Button
-                      key={preset.label}
-                      variant={parseFloat(waterVolume) === preset.value ? "default" : "outline"}
-                      size="sm"
-                      className="flex-1 w-full"
-                      onClick={() => setWaterVolume(preset.value.toString())}>
-                      {preset.label}
-                    </Button>
-                  ))}
-                </div>
+                <PresetButtons
+                  presets={QUICK_PRESETS}
+                  currentValue={parseFloat(waterVolume)}
+                  onSelect={value => setWaterVolume(value.toString())}
+                />
               </div>
               <Input
                 ref={inputRef}
@@ -82,17 +97,8 @@ export function CoffeeCalculatorComponent() {
 
             <div>
               <Label>Coffee-to-Water Ratio</Label>
-              <div className="flex flex-wrap gap-2 mt-2">
-                {[15, 16, 17, 18].map(preset => (
-                  <Button
-                    key={preset}
-                    variant={ratio === preset ? "default" : "outline"}
-                    size="lg"
-                    className="flex-1"
-                    onClick={() => setRatio(preset)}>
-                    1:{preset}
-                  </Button>
-                ))}
+              <div className="mt-2">
+                <PresetButtons presets={RATIO_PRESETS} currentValue={ratio} onSelect={setRatio} size="lg" />
               </div>
             </div>
 
