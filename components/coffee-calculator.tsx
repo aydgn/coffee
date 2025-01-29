@@ -23,7 +23,12 @@ export function CoffeeCalculatorComponent() {
   }, [calculateCoffee]);
 
   useEffect(() => {
-    inputRef.current?.focus();
+    // Focus the input and move the cursor to the end
+    if (inputRef.current) {
+      inputRef.current.focus();
+      const length = inputRef.current.value.length;
+      inputRef.current.setSelectionRange(length, length);
+    }
   }, []);
 
   const handleWaterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -64,7 +69,15 @@ export function CoffeeCalculatorComponent() {
                   ))}
                 </div>
               </div>
-              <Input ref={inputRef} id="water-volume" type="number" value={waterVolume} onChange={handleWaterChange} min={0} />
+              <Input
+                ref={inputRef}
+                id="water-volume"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                value={waterVolume}
+                onChange={handleWaterChange}
+              />
             </div>
 
             <div>
