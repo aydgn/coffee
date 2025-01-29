@@ -39,7 +39,7 @@ export function CoffeeCalculatorComponent() {
   const quickPresets = [
     { label: "Single Cup", value: 250 },
     { label: "Two Cups", value: 500 },
-    { label: "Full Pot", value: 1000 },
+    { label: "Full Pot", value: 750 },
   ];
 
   return (
