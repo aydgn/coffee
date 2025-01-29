@@ -38,8 +38,8 @@ export function CoffeeCalculatorComponent() {
   ];
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-neutral-900 p-4">
-      <Card className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center bg-neutral-900 p-0 sm:p-4">
+      <Card className="w-full h-screen sm:h-auto sm:max-w-md">
         <CardHeader>
           <CardTitle className="text-2xl font-bold">Coffee-to-Water Ratio Calculator</CardTitle>
           <CardDescription>Calculate the perfect coffee-to-water ratio for your brew.</CardDescription>
