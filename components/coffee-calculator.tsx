@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 const QUICK_PRESETS = [
   { label: "Single Cup", value: 250 },
@@ -22,16 +23,21 @@ type PresetButtonProps<T> = {
   currentValue: T;
   onSelect: (value: T) => void;
   size?: "sm" | "lg";
+  className?: string;
 };
 
-const PresetButtons = <T,>({ presets, currentValue, onSelect, size = "sm" }: PresetButtonProps<T>) => (
-  <div className="flex gap-2">
+const PresetButtons = <T,>({ presets, currentValue, onSelect, size = "sm", className }: PresetButtonProps<T>) => (
+  // Equal `minmax(0, 1fr)` columns: flex items refuse to shrink below the buttons'
+  // `whitespace-nowrap` min-content width, which overflowed the card on 375px phones.
+  <div
+    className={cn("grid gap-2", className)}
+    style={{ gridTemplateColumns: `repeat(${presets.length}, minmax(0, 1fr))` }}>
     {presets.map(preset => (
       <Button
         key={preset.label}
         variant={currentValue === preset.value ? "default" : "outline"}
         size={size}
-        className="flex-1 w-full"
+        className="px-2"
         onClick={() => onSelect(preset.value)}>
         {preset.label}
       </Button>
@@ -50,12 +56,13 @@ export function CoffeeCalculatorComponent() {
   }, [waterVolume, ratio]);
 
   useEffect(() => {
-    if (!inputRef.current) {
+    const input = inputRef.current;
+    if (!input) {
       return;
     }
-    inputRef.current.focus();
-    const length = waterVolume.length;
-    inputRef.current.setSelectionRange(length, length);
+    input.focus();
+    // Read the length off the DOM node so the mount-only effect needs no state dependency.
+    input.setSelectionRange(input.value.length, input.value.length);
   }, []);
 
   const handleWaterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -65,8 +72,8 @@ export function CoffeeCalculatorComponent() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-neutral-900 p-0 sm:p-4">
-      <Card className="w-full h-screen sm:h-auto sm:max-w-md">
+    <div className="min-h-dvh flex items-center justify-center bg-neutral-900 p-0 sm:p-4">
+      <Card className="w-full h-dvh sm:h-auto sm:max-w-md">
         <CardHeader>
           <CardTitle className="text-2xl font-bold">Coffee-to-Water Ratio Calculator</CardTitle>
           <CardDescription>Calculate the perfect coffee-to-water ratio for your brew.</CardDescription>
@@ -82,6 +89,7 @@ export function CoffeeCalculatorComponent() {
                   presets={QUICK_PRESETS}
                   currentValue={parseFloat(waterVolume)}
                   onSelect={value => setWaterVolume(value.toString())}
+                  className="w-full sm:w-auto"
                 />
               </div>
               <Input
