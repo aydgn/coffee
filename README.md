@@ -51,6 +51,8 @@ bun run preview
 
 For Cloudflare Pages Git integration, use the repository root, build command `bun run build`, and build output directory `out`. For a manual Pages upload after building, deploy the same output directory:
 
+The Cloudflare build image needs Bun 1.4.3 to read the v2 `bun.lock` in frozen installs. Keep `BUN_VERSION = "1.4.3"` in Wrangler's `[vars]`; this shared setting covers production and preview builds.
+
 ```bash
 bunx wrangler pages deploy out --project-name coffee-to-water-ratio-calculator
 ```
