@@ -49,7 +49,12 @@ if (!filePaths.some((path) => path.startsWith("_next/static/"))) {
   throw new Error("Static export has no Next.js client assets to precache");
 }
 
+const workerTemplate = await readFile(
+  fileURLToPath(new URL("../public/sw.js", import.meta.url)),
+  "utf8",
+);
 const revision = createHash("sha256");
+revision.update("\0service-worker\0").update(workerTemplate).update("\0");
 const urls = [];
 for (const path of filePaths) {
   const url = path === "index.html" ? "/" : `/${path}`;
@@ -61,10 +66,6 @@ const manifest = {
   revision: revision.digest("hex"),
   urls,
 };
-const workerTemplate = await readFile(
-  fileURLToPath(new URL("../public/sw.js", import.meta.url)),
-  "utf8",
-);
 const placeholder = 'const PRECACHE_MANIFEST = "__PRECACHE_MANIFEST__";';
 if (
   workerTemplate.indexOf(placeholder) === -1 ||

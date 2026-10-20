@@ -47,7 +47,7 @@ bunx playwright install chromium
 bun run test:e2e
 ```
 
-`bun run test:e2e` builds `out/` and starts `bun run preview` on `127.0.0.1:8791`, so it uses the project-local Wrangler and never needs a global install. It runs every `e2e/*.e2e.ts` file in two Chromium projects: desktop and Pixel 7 mobile emulation. The `pwa.e2e.ts` lifecycle test instead serves a temporary release from an isolated HTTP server on an ephemeral port, separate from the suite's Wrangler preview: it checks first-visit precaching, offline calculation (500 ml → 31.3 g, 300 ml → 18.8 g), an update that waits while an old tab is open, and activation with the old cache removed after that tab closes. The Bun unit runner ignores `*.e2e.ts` files, so `bun run test:unit` stays separate.
+`bun run test:e2e` builds `out/` and starts `bun run preview` on `127.0.0.1:8791`, so it uses the project-local Wrangler and never needs a global install. It runs every `e2e/*.e2e.ts` file in two Chromium projects: desktop and Pixel 7 mobile emulation. The `pwa.e2e.ts` lifecycle test instead serves temporary releases from an isolated HTTP server on an ephemeral port, separate from the suite's Wrangler preview: it checks first-visit precaching, offline calculation (300 ml → 18.8 g), background installation and activation of a new release while an old tab stays open, the next normal load showing the new release, retained drafts and saved preferences in the old tab, a partial download that leaves the old release intact, and offline fallback for hashed assets from a retained previous cache. The Bun unit runner ignores `*.e2e.ts` files, so `bun run test:unit` stays separate.
 
 ```bash
 bun run test:unit
@@ -62,7 +62,7 @@ bun run build
 bun run preview
 ```
 
-`bun run build` writes the deployable site to `out/` and uses the exported root page, Next.js static assets, manifest, favicon, and icons to generate a SHA-256 revision and exact precache list inside `out/sw.js`. Hashed Next.js paths are not maintained by hand.
+`bun run build` writes the deployable site to `out/` and uses the exported root page, Next.js static assets, manifest, favicon, and icons to generate a SHA-256 revision and exact precache list inside `out/sw.js`. Worker template bytes are included in that revision digest, so a worker-only change produces a new cache. Hashed Next.js paths are not maintained by hand.
 
 For Cloudflare Pages Git integration, use the repository root, build command `bun run build`, and build output directory `out`. For a manual Pages upload after building, deploy the same output directory:
 
@@ -82,6 +82,7 @@ The web app manifest provides a standalone app identity and generated icons, inc
 
 - **First online visit:** load the site once over HTTPS or `localhost`. The worker precaches the exact shell, static assets, manifest, and icons listed in `out/sw.js`. Installation is all-or-nothing, so a partial download never activates. The worker does not take over open pages, so the first load is uncontrolled; reload once after activation before relying on offline behavior.
 - **Offline opening:** once the worker controls the page, reloading or opening the site without a network serves the cached shell. Calculation runs entirely in the browser, and saved preferences load from local storage.
-- **Updates:** a new deployment installs in the background and waits while any open tab from the previous version remains. That tab keeps working from its cached version. After those tabs close, the new worker activates and the previous version's caches are deleted; open the site again to load the new version.
+- **Updates:** a new deployment installs in the background while the site keeps serving its cached version. The worker calls `skipWaiting` only after every precache entry downloads, so a partial download never replaces the active release. The page registers `/sw.js` on entry, which lets the browser check for a changed worker script, and calls `registration.update()` explicitly only when the tab becomes visible. Open tabs are not reloaded, so drafts and saved preferences in them are kept. The new release appears on the next normal page load or reload; the worker does not claim open pages. After activation, previous caches are pruned to the active predecessor plus the newest other complete cache, and their hashed assets still serve offline when the new release lacks them.
 - **Test coverage:** Automated lifecycle tests run in desktop and mobile Chromium emulation against the isolated HTTP server described above.
-- **Verified limits:** A separate manual offline check used Chromium against the local Wrangler Pages preview; that is not Cloudflare's edge. Safari, iOS Home Screen installs, and physical devices were not tested.
+- **Asset retention limit:** the worker keeps the current release plus at most two previous complete releases for hashed-asset fallback. The app is eager and does not promise arbitrary lazy-loaded asset references across unlimited releases; revisit if routes are added.
+- **Verified limits:** A separate manual offline check used Chromium against the local Wrangler Pages preview; that is not Cloudflare's edge. Browsers that loaded the site before this worker shipped run the older worker. That worker checks the new script during normal entry or the browser's own update check. On first entry it may keep serving the old shell while the new release prepares; the next refresh after the release is ready returns the new version. Safari, iOS Home Screen installs, and physical devices were not tested.
