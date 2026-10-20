@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,6 +26,48 @@ type CalculatorDrafts = {
   coffee?: string;
   ratio?: string;
 };
+
+type CalculatorDraftState = {
+  preferences: BrewPreferences;
+  drafts: CalculatorDrafts;
+};
+
+function synchronizeDrafts(
+  state: CalculatorDraftState,
+  preferences: BrewPreferences,
+): CalculatorDraftState {
+  if (
+    state.preferences.mode === preferences.mode &&
+    state.preferences.waterMl === preferences.waterMl &&
+    state.preferences.coffeeGrams === preferences.coffeeGrams &&
+    state.preferences.ratio === preferences.ratio
+  ) return state;
+
+  let drafts = state.drafts;
+  if (state.preferences.waterMl !== preferences.waterMl && drafts.water !== undefined) {
+    const parsed = parseBrewAmount(drafts.water, "water");
+    if (parsed.kind !== "valid" || parsed.value !== preferences.waterMl) {
+      drafts = { ...drafts };
+      delete drafts.water;
+    }
+  }
+  if (state.preferences.coffeeGrams !== preferences.coffeeGrams && drafts.coffee !== undefined) {
+    const parsed = parseBrewAmount(drafts.coffee, "coffee");
+    if (parsed.kind !== "valid" || parsed.value !== preferences.coffeeGrams) {
+      drafts = { ...drafts };
+      delete drafts.coffee;
+    }
+  }
+  if (state.preferences.ratio !== preferences.ratio && drafts.ratio !== undefined) {
+    const parsed = parseRatio(drafts.ratio);
+    if (parsed.kind !== "valid" || parsed.value !== preferences.ratio) {
+      drafts = { ...drafts };
+      delete drafts.ratio;
+    }
+  }
+
+  return { preferences, drafts };
+}
 
 const preferenceListeners = new Set<() => void>();
 let volatilePreferences: string | null = null;
@@ -143,7 +185,27 @@ export function CoffeeCalculatorComponent() {
     getServerPreferenceSnapshot,
   );
   const preferences = useMemo(() => readBrewPreferences(serializedPreferences), [serializedPreferences]);
-  const [drafts, setDrafts] = useState<CalculatorDrafts>({});
+  const [draftState, setDraftState] = useState<CalculatorDraftState>({ preferences, drafts: {} });
+  const synchronizedDraftState = useMemo(
+    () => synchronizeDrafts(draftState, preferences),
+    [draftState, preferences],
+  );
+  const drafts = synchronizedDraftState.drafts;
+  useEffect(() => {
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key !== STORAGE_KEY && event.key !== null) return;
+      const incomingPreferences = readBrewPreferences(event.newValue);
+      setDraftState(previous => synchronizeDrafts(previous, incomingPreferences));
+    };
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
+  }, []);
+  const updateDrafts = (changes: CalculatorDrafts) => {
+    setDraftState(previous => ({
+      preferences,
+      drafts: { ...synchronizeDrafts(previous, preferences).drafts, ...changes },
+    }));
+  };
   const mode = preferences.mode;
   const waterInput = drafts.water ?? String(preferences.waterMl);
   const coffeeInput = drafts.coffee ?? String(preferences.coffeeGrams);
@@ -181,7 +243,7 @@ export function CoffeeCalculatorComponent() {
 
   const updateAmount = (next: string) => {
     const inputKey = mode === "water" ? "water" : "coffee";
-    setDrafts(previous => ({ ...previous, [inputKey]: next }));
+    updateDrafts({ [inputKey]: next });
     const parsed = parseBrewAmount(next, mode);
     if (parsed.kind === "valid") {
       updatePreferences({
@@ -192,30 +254,30 @@ export function CoffeeCalculatorComponent() {
 
   const selectAmountPreset = (value: number) => {
     const inputKey = mode === "water" ? "water" : "coffee";
-    setDrafts(previous => ({ ...previous, [inputKey]: String(value) }));
+    updateDrafts({ [inputKey]: String(value) });
     updatePreferences({ [mode === "water" ? "waterMl" : "coffeeGrams"]: value });
   };
 
   const selectRatio = (value: number) => {
-    setDrafts(previous => ({ ...previous, ratio: String(value) }));
+    updateDrafts({ ratio: String(value) });
     updatePreferences({ ratio: value });
   };
 
   return (
     <main
-      className="flex min-h-dvh items-center justify-center bg-neutral-900"
+      className="flex min-h-dvh items-start justify-center bg-neutral-900 sm:items-center"
       style={{
         paddingTop: "max(env(safe-area-inset-top), 1rem)",
         paddingRight: "max(env(safe-area-inset-right), 1rem)",
         paddingBottom: "max(env(safe-area-inset-bottom), 1rem)",
         paddingLeft: "max(env(safe-area-inset-left), 1rem)",
       }}>
-      <Card className="w-full max-w-md">
-        <CardHeader className="p-3 sm:p-6">
+      <Card className="w-full max-w-none rounded-none border-0 bg-transparent dark:bg-transparent text-neutral-50 shadow-none sm:max-w-md sm:rounded-xl sm:border sm:border-neutral-800 sm:bg-white sm:dark:bg-neutral-950 sm:shadow-sm">
+        <CardHeader className="p-0 pb-3 sm:p-6">
           <h1 className="text-xl font-bold sm:text-2xl">Coffee-to-Water Ratio Calculator</h1>
           <CardDescription>Brew by water, coffee, or ratio.</CardDescription>
         </CardHeader>
-        <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0">
+        <CardContent className="p-0 sm:p-6 sm:pt-0">
           <div className="space-y-2 sm:space-y-5">
             <fieldset className="min-w-0 space-y-2 border-0 p-0">
               <legend className="mb-2 text-sm font-medium">Calculate from</legend>
@@ -329,7 +391,7 @@ export function CoffeeCalculatorComponent() {
                       }
                       onChange={event => {
                         const next = event.currentTarget.value;
-                        setDrafts(previous => ({ ...previous, ratio: next }));
+                        updateDrafts({ ratio: next });
                         const parsed = parseRatio(next);
                         if (parsed.kind === "valid") updatePreferences({ ratio: parsed.value });
                       }}

@@ -8,9 +8,11 @@ A single-screen, dark, mobile-first coffee-to-water calculator. It supports calc
 - Water presets: 250, 500, and 750 ml. Coffee presets: 15, 30, and 45 g. Ratio presets: 1:15 through 1:18.
 - Custom amounts accept a dot or comma decimal separator, up to three decimal places. Water range: 1–10,000 ml; coffee range: 0.1–1,000 g; ratio range: 1–100.
 - Empty, incomplete, or invalid input does not show a false zero result. Valid amount and custom-ratio edits are saved to local storage as you type, not only on blur; missing, corrupt, or unavailable storage falls back to usable defaults.
+- Saved preference changes sync across open tabs; a changed saved value replaces a stale draft for that field without disturbing unrelated in-progress edits.
 - The custom ratio is a native expandable disclosure. Its summary keeps the saved value visible when collapsed, for example `Custom ratio (1:15.5)`.
 - The optional bloom-water figure is an estimate of about twice the coffee dose, not a required recipe.
 - Controls use at least 44 px touch targets, labeled inputs and accessible status feedback. The layout accounts for device safe areas. The calculator stays on one screen; it does not include timers, named recipe management, or brewer-capacity configuration.
+- Below 640 px, the calculator fills the available width with at least 16 px safe-area-aware screen-edge spacing and starts at the top; from 640 px up, the centered card returns.
 
 ## Development and checks
 
@@ -36,6 +38,19 @@ Other project checks are available as scripts:
 ```bash
 bun run lint
 bun run typecheck
+```
+
+Install the Chromium browser once for the browser tests, then run the end-to-end suite:
+
+```bash
+bunx playwright install chromium
+bun run test:e2e
+```
+
+`bun run test:e2e` builds `out/` and starts `bun run preview` on `127.0.0.1:8791`, so it uses the project-local Wrangler and never needs a global install. It runs every `e2e/*.e2e.ts` file in two Chromium projects: desktop and Pixel 7 mobile emulation. The `pwa.e2e.ts` lifecycle test instead serves a temporary release from an isolated HTTP server on an ephemeral port, separate from the suite's Wrangler preview: it checks first-visit precaching, offline calculation (500 ml → 31.3 g, 300 ml → 18.8 g), an update that waits while an old tab is open, and activation with the old cache removed after that tab closes. The Bun unit runner ignores `*.e2e.ts` files, so `bun run test:unit` stays separate.
+
+```bash
+bun run test:unit
 ```
 
 ## Static build and Cloudflare Pages
@@ -68,4 +83,5 @@ The web app manifest provides a standalone app identity and generated icons, inc
 - **First online visit:** load the site once over HTTPS or `localhost`. The worker precaches the exact shell, static assets, manifest, and icons listed in `out/sw.js`. Installation is all-or-nothing, so a partial download never activates. The worker does not take over open pages, so the first load is uncontrolled; reload once after activation before relying on offline behavior.
 - **Offline opening:** once the worker controls the page, reloading or opening the site without a network serves the cached shell. Calculation runs entirely in the browser, and saved preferences load from local storage.
 - **Updates:** a new deployment installs in the background and waits while any open tab from the previous version remains. That tab keeps working from its cached version. After those tabs close, the new worker activates and the previous version's caches are deleted; open the site again to load the new version.
-- **Verified limits:** offline behavior was checked in a Chromium-based browser against a local Wrangler Pages preview, which is not Cloudflare's edge. Safari, iOS Home Screen installs, and physical devices were not tested.
+- **Test coverage:** Automated lifecycle tests run in desktop and mobile Chromium emulation against the isolated HTTP server described above.
+- **Verified limits:** A separate manual offline check used Chromium against the local Wrangler Pages preview; that is not Cloudflare's edge. Safari, iOS Home Screen installs, and physical devices were not tested.
