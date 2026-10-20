@@ -13,7 +13,7 @@ const bridgedCoreWebVitals = coreWebVitals.map(entry =>
 );
 
 const config = [
-  { ignores: [".next/**", "out/**", ".vercel/**"] },
+  { ignores: [".next/**", "out/**", ".vercel/**", ".wrangler/**"] },
   ...bridgedCoreWebVitals,
   ...typescript,
 ];
