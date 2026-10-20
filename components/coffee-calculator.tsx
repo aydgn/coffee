@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -178,12 +178,20 @@ function resultPrompt(kind: ParsedValue["kind"], subject: string, limits: string
   return validationMessage(kind, limits);
 }
 
+const subscribeToNothing = () => () => {};
+
+function useHydrated() {
+  return useSyncExternalStore(subscribeToNothing, () => true, () => false);
+}
+
 export function CoffeeCalculatorComponent() {
   const serializedPreferences = useSyncExternalStore(
     subscribeToPreferences,
     getPreferenceSnapshot,
     getServerPreferenceSnapshot,
   );
+  const hydrated = useHydrated();
+  const amountRef = useRef<HTMLInputElement>(null);
   const preferences = useMemo(() => readBrewPreferences(serializedPreferences), [serializedPreferences]);
   const [draftState, setDraftState] = useState<CalculatorDraftState>({ preferences, drafts: {} });
   const synchronizedDraftState = useMemo(
@@ -200,6 +208,13 @@ export function CoffeeCalculatorComponent() {
     window.addEventListener("storage", handleStorage);
     return () => window.removeEventListener("storage", handleStorage);
   }, []);
+
+  useEffect(() => {
+    const input = amountRef.current;
+    if (!hydrated || !input) return;
+    input.focus();
+    input.select();
+  }, [hydrated]);
   const updateDrafts = (changes: CalculatorDrafts) => {
     setDraftState(previous => ({
       preferences,
@@ -310,6 +325,7 @@ export function CoffeeCalculatorComponent() {
                 label={mode === "water" ? "Water amount presets" : "Coffee amount presets"}
               />
               <Input
+                ref={amountRef}
                 id="brew-amount"
                 type="text"
                 inputMode="decimal"

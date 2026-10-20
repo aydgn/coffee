@@ -77,3 +77,18 @@ test("a discarded draft stays discarded when preferences later return to its old
   await expect(result(tabA)).toHaveText("18.8 grams");
 });
 
+test("typing on page load replaces the default, and replaces the full restored amount after reload", async ({ page }) => {
+  await page.goto("/");
+  await expect(amount(page)).toBeFocused();
+  await page.keyboard.type("320");
+  await expect(amount(page)).toHaveValue("320");
+  await expect(result(page)).toHaveText("20 grams");
+
+  await amount(page).fill("1000");
+  await page.reload();
+  await expect(amount(page)).toBeFocused();
+  await page.keyboard.type("320");
+  await expect(amount(page)).toHaveValue("320");
+  await expect(result(page)).toHaveText("20 grams");
+});
+

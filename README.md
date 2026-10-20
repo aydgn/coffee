@@ -8,6 +8,7 @@ A single-screen, dark, mobile-first coffee-to-water calculator. It supports calc
 - Water presets: 250, 500, and 750 ml. Coffee presets: 15, 30, and 45 g. Ratio presets: 1:15 through 1:18.
 - Custom amounts accept a dot or comma decimal separator, up to three decimal places. Water range: 1–10,000 ml; coffee range: 0.1–1,000 g; ratio range: 1–100.
 - Empty, incomplete, or invalid input does not show a false zero result. Valid amount and custom-ratio edits are saved to local storage as you type, not only on blur; missing, corrupt, or unavailable storage falls back to usable defaults.
+- On first load the amount field is focused with its value selected, so typing replaces it. Mobile browsers may not open the keyboard without a tap.
 - Saved preference changes sync across open tabs; a changed saved value replaces a stale draft for that field without disturbing unrelated in-progress edits.
 - The custom ratio is a native expandable disclosure. Its summary keeps the saved value visible when collapsed, for example `Custom ratio (1:15.5)`.
 - The optional bloom-water figure is an estimate of about twice the coffee dose, not a required recipe.
